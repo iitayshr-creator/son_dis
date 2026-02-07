@@ -2,14 +2,17 @@ import discord
 from discord.ext import commands
 import yt_dlp
 import asyncio
-import os # <--- הוספנו את זה
+import os
+import imageio_ffmpeg # <--- הטריק שלנו
 
+# הגדרות בסיסיות
 intents = discord.Intents.default()
 intents.message_content = True
 intents.voice_states = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+# תיקון באגים של יוטיוב
 yt_dlp.utils.bug_reports_message = lambda *args, **kwargs: ''
 
 ytdl_format_options = {
@@ -25,6 +28,10 @@ ytdl_format_options = {
     'default_search': 'auto',
     'source_address': '0.0.0.0',
 }
+
+# שימוש ב-FFmpeg הפנימי
+ffmpeg_executable = imageio_ffmpeg.get_ffmpeg_exe()
+print(f"✅ FFmpeg loaded from: {ffmpeg_executable}")
 
 ffmpeg_options = {
     'options': '-vn',
@@ -49,7 +56,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+        
+        # כאן אנחנו משתמשים ב-exe שהורדנו אוטומטית
+        return cls(discord.FFmpegPCMAudio(filename, executable=ffmpeg_executable, **ffmpeg_options), data=data)
 
 @bot.event
 async def on_ready():
@@ -58,7 +67,7 @@ async def on_ready():
 @bot.command(name='play')
 async def play(ctx, *, url):
     if not ctx.author.voice:
-        await ctx.send("אתה חייב להיות בחדר קול!")
+        await ctx.send("כנס לחדר קול קודם!")
         return
 
     channel = ctx.author.voice.channel
@@ -67,34 +76,33 @@ async def play(ctx, *, url):
     else:
         await ctx.voice_client.move_to(channel)
 
-    server = ctx.message.guild
-    voice_channel = server.voice_client
+    voice_channel = ctx.message.guild.voice_client
 
     async with ctx.typing():
         try:
             player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
             if voice_channel.is_playing():
                 voice_channel.stop()
-            voice_channel.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
-            await ctx.send(f'🎵 מנגן כעת: **{player.title}**')
+            voice_channel.play(player, after=lambda e: print(f'Error: {e}') if e else None)
+            await ctx.send(f'🎵 מנגן: **{player.title}**')
         except Exception as e:
-            await ctx.send("שגיאה בניגון השיר.")
+            await ctx.send(f"שגיאה: {e}")
             print(e)
 
 @bot.command(name='stop')
 async def stop(ctx):
-    if ctx.voice_client and ctx.voice_client.is_playing():
+    if ctx.voice_client:
         ctx.voice_client.stop()
-        await ctx.send("⏹ נעצר.")
+        await ctx.send("עצרתי.")
 
 @bot.command(name='leave')
 async def leave(ctx):
     if ctx.voice_client:
         await ctx.voice_client.disconnect()
 
-# שינוי קריטי ל-Railway: קריאת הטוקן מהסביבה
+# הרצה
 token = os.getenv('DISCORD_TOKEN')
 if token:
     bot.run(token)
 else:
-    print("Error: DISCORD_TOKEN not found in environment variables")
+    print("Error: No Token Found!")
