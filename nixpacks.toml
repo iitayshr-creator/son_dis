@@ -1,8 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "ffmpeg", "nodejs"]
-
-[phases.build]
-cmds = ["pip install -r requirements.txt"]
+nixPkgs = ["python311", "ffmpeg"]
 
 [start]
-cmd = "python index.py"
+cmd = "python main.py"
