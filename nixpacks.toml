@@ -1,9 +1,5 @@
 [phases.setup]
-# כאן הוספנו את ffmpeg ואת nodejs כדי לפתור את שתי השגיאות שראית
-nixPkgs = ["python311", "ffmpeg", "nodejs_20"]
-
-[phases.build]
-cmds = ["pip install -r requirements.txt"]
+nixPkgs = ["python3", "ffmpeg"]
 
 [start]
-cmd = "python main.py"
+cmd = "python bot.py"
