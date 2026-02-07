@@ -1,8 +1,5 @@
 [phases.setup]
-# מתקין את פייתון דרך Nix
 nixPkgs = ["python311"]
-# מתקין את FFmpeg דרך APT (יותר אמין למיקום הקבצים)
-aptPkgs = ["ffmpeg"]
 
 [start]
 cmd = "python bot.py"
